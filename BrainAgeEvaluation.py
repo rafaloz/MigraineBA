@@ -18,6 +18,8 @@ from scipy.stats import f_oneway
 from scipy.stats import kstest, kruskal, levene, chi2_contingency, mannwhitneyu
 from scipy import stats
 
+import seaborn as sns
+
 
 # config parser llamo al archivo de configuración
 config_parser = configparser.ConfigParser(allow_no_value=True)

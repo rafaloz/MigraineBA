@@ -1,6 +1,4 @@
-import pandas as pd
 from scipy.stats import ks_2samp
-from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 
 from sklearn.preprocessing import LabelEncoder
@@ -9,7 +7,7 @@ from MultilayerPerceptron.MLP_1_layer import *
 from neuroHarmonize import harmonizationLearn
 import configparser
 
-from utils import *
+from Utils import *
 import pickle
 
 datos_todos, edades_todos = cargo_datos_todos()
