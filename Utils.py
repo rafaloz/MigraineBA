@@ -7,15 +7,33 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import SelectPercentile, mutual_info_regression
 import infoselect as inf
 
-from sklearn.svm import SVR
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_absolute_percentage_error
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.neural_network import MLPRegressor
+
+from scipy import stats
 
 import os
 import configparser
+
+import pickle
+from pickle import dump
+
+
+def brain_age_bias_correction(age_val_folds, pred_val_folds, pred_controles, pred_migr_cr, pred_migr_ep):
+    slopes, intercepts = [], []
+    for i in range(10):
+        x = np.array(age_val_folds[i]).reshape((-1, 1))
+        y = np.array(pred_val_folds[i])
+        model = LinearRegression().fit(x, y)
+        intercepts.append(model.intercept_)
+        slopes.append(model.coef_[0])
+
+    pred_controles_corrected = [(pred_controles[i] - intercepts[i]) / slopes[i] for i in range(10)]
+    pred_migr_cr_corrected = [(pred_migr_cr[i] - intercepts[i]) / slopes[i] for i in range(10)]
+    pred_migr_ep_corrected = [(pred_migr_ep[i] - intercepts[i]) / slopes[i] for i in range(10)]
+
+    return pred_controles_corrected, pred_migr_cr_corrected, pred_migr_ep_corrected
 
 
 def check_split(datos_list, datos_validation, datos_test):
@@ -149,6 +167,11 @@ def outlier_flattening_2_entries(datos_train, datos_test):
     return datos_train_flat, datos_test_flat
 
 
+def save_list(list_to_save, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(list_to_save, file)
+
+
 def outlier_flattening_3_entries(datos_train, datos_val, datos_test):
     datos_train_flat = datos_train.copy()
     datos_test_flat = datos_test.copy()
@@ -164,6 +187,22 @@ def outlier_flattening_3_entries(datos_train, datos_val, datos_test):
             datos_test_flat[col] = np.clip(datos_test[col], percentiles[0], percentiles[1])
 
     return datos_train_flat, datos_val_flat, datos_test_flat
+
+
+def normlize_loading_scaler(data, scaler):
+
+    data_norm = scaler.transform(data)
+
+    return data_norm
+
+def outlier_flattening_limits(data, limits):
+    datos_flat = data.copy()
+
+    for col in limits['features'].values.tolist():
+        datos_flat[col] = np.clip(data[col], limits[limits['features'] == col]['limits'].values[0][0], limits[limits['features'] == col]['limits'].values[0][1])
+
+
+    return datos_flat
 
 
 def normalize_data_min_max_2_entries(datos_train, datos_test, range):
@@ -212,41 +251,41 @@ def outliers_y_normalizacion_3_entries(datos_train, datos_val, datos_test):
     return datos_train_norm, datos_val_norm, datos_test_norm
 
 
-def feature_selection_compossite_MI_with_val(datos_train, datos_val, datos_test, edades_train, n_features):
+def feature_selection(data_train, data_val, data_test, ages_train, n_features):
 
-    # select 10 percent bbest
+    # select 10 percent best
     sel_2 = SelectPercentile(mutual_info_regression, percentile=10)
-    datos_train = sel_2.fit_transform(datos_train, edades_train)
-    datos_val = sel_2.transform(datos_val)
-    datos_test = sel_2.transform(datos_test)
+    data_train = sel_2.fit_transform(data_train, ages_train)
+    data_val = sel_2.transform(data_val)
+    data_test = sel_2.transform(data_test)
 
-    datos_train = pd.DataFrame(datos_train)
-    datos_train.columns = sel_2.get_feature_names_out()
-    datos_val = pd.DataFrame(datos_val)
-    datos_val.columns = sel_2.get_feature_names_out()
-    datos_test = pd.DataFrame(datos_test)
-    datos_test.columns = sel_2.get_feature_names_out()
+    data_train = pd.DataFrame(data_train)
+    data_train.columns = sel_2.get_feature_names_out()
+    data_val = pd.DataFrame(data_val)
+    data_val.columns = sel_2.get_feature_names_out()
+    data_test = pd.DataFrame(data_test)
+    data_test.columns = sel_2.get_feature_names_out()
 
     # more MI selection
-    gmm = inf.get_gmm(datos_train.values, edades_train)
+    gmm = inf.get_gmm(data_train.values, ages_train)
     select = inf.SelectVars(gmm, selection_mode='forward')
-    select.fit(datos_train.values, edades_train, verbose=False)
+    select.fit(data_train.values, ages_train, verbose=False)
 
     # print(select.get_info())
     # select.plot_mi()
     # select.plot_delta()
 
-    datos_train_filtrados_SFS = select.transform(datos_train.values, rd=n_features)
-    datos_val_filtrados_SFS = select.transform(datos_val.values, rd=n_features)
-    datos_test_filtrados_SFS = select.transform(datos_test.values, rd=n_features)
+    data_train_filtered = select.transform(data_train.values, rd=n_features)
+    data_val_filtered = select.transform(data_val.values, rd=n_features)
+    data_test_filtered = select.transform(data_test.values, rd=n_features)
 
     indices = select.feat_hist[n_features]
-    names_list = datos_test.columns.tolist()
-    features_names_SFS = [names_list[i] for i in indices]
+    names_list = data_test.columns.tolist()
+    features_names = [names_list[i] for i in indices]
 
-    return datos_train_filtrados_SFS, datos_val_filtrados_SFS, datos_test_filtrados_SFS, features_names_SFS
+    return data_train_filtered, data_val_filtered, data_test_filtered, features_names
 
-def define_listas_svr():
+def define_lists_svr():
 
     # defino listas para guardar los resultados y un dataframe # SVR
     MAE_list_train_SVR, MAE_list_train_unbiased_SVR, r_list_train_SVR, r_list_train_unbiased_SVR, rs_BAG_train_SVR, \
@@ -260,7 +299,7 @@ def define_listas_svr():
     return listas_SVR
 
 
-def define_listas_RF():
+def define_lists_RF():
 
     # defino listas para guardar los resultados y un dataframe # RF
     MAE_list_train_RF, MAE_list_train_unbiased_RF, r_list_train_RF, r_list_train_unbiased_RF, rs_BAG_train_RF, \
@@ -274,7 +313,7 @@ def define_listas_RF():
     return listas_RF
 
 
-def define_listas_cnn():
+def define_lists_cnn():
 
     # defino listas para guardar los resultados y un dataframe # tab_CNN
     MAE_list_train_tab_CNN, MAE_list_train_unbiased_tab_CNN, r_list_train_tab_CNN, r_list_train_unbiased_tab_CNN, rs_BAG_train_tab_CNN, \
@@ -288,21 +327,21 @@ def define_listas_cnn():
     return listas_tab_CNN
 
 
-def execute_in_val_and_test_SVR_con_CoRR(datos_train_filtrados_RFE, edades_train, datos_val_filtrados_RFE, edades_val, datos_test_filtrados_RFE, edades_test, lista, regresor, n_feats, split, save_dir):
+def execute_in_val_and_test_SVR(data_train_filtered, edades_train, data_val_filtered, edades_val, data_test_filtered, edades_test, lista, regresor, n_feats, split, save_dir):
 
     # identifico en método de regresión
     regresor_used = lista[9]
 
     # hago el entrenamiento sobre todos los datos de entrenamiento
-    regresor.fit(datos_train_filtrados_RFE, edades_train)
+    regresor.fit(data_train_filtered, edades_train)
 
     # save the model to disk
     filename = os.path.join(save_dir, 'SVR_nfeats_'+str(n_feats)+'_split_'+str(split)+'.pkl')
-    pickle.dump(regresor, open(filename, 'wb'))
+    # pickle.dump(regresor, open(filename, 'wb'))
 
     # Hago la predicción de los casos de test sanos
-    pred_val = regresor.predict(datos_val_filtrados_RFE)
-    pred_test = regresor.predict(datos_test_filtrados_RFE)
+    pred_val = regresor.predict(data_val_filtered)
+    pred_test = regresor.predict(data_test_filtered)
 
     # Calculo BAG sanos val & test
     BAG_val_sanos = pred_val - edades_val
@@ -357,28 +396,28 @@ def execute_in_val_and_test_SVR_con_CoRR(datos_train_filtrados_RFE, edades_train
     MAEs_and_rs_val = pd.DataFrame(list(zip([MAE_biased_val], [r_biased_val], [r_bag_real_biased_val])),
                                             columns=['MAE_biased_val', 'r_biased_val', 'r_bag_real_biased_val'])
 
-    # results = permutation_importance(regresor, datos_train_filtrados_RFE, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
+    # results = permutation_importance(regresor, data_train_filtered, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
 
     return prediction_and_real_data_test, prediction_and_real_data_val, MAEs_and_rs_test, MAEs_and_rs_val
 
 
 
 
-def execute_in_val_and_test_NN_con_CoRR(datos_train_filtrados_RFE, edades_train, datos_val_filtrados_RFE, edades_val, datos_test_filtrados_RFE, edades_test, lista, regresor, n_features, split, save_dir):
+def execute_in_val_and_test_NN(data_train_filtered, edades_train, data_val_filtered, edades_val, data_test_filtered, edades_test, lista, regresor, n_features, split, save_dir):
 
     # identifico en método de regresión
     regresor_used = lista[9]
 
     # hago el entrenamiento sobre todos los datos de entrenamiento
-    regresor.fit(datos_train_filtrados_RFE, edades_train, n_features, 16,  lr=1e-3, weight_decay=1e-6, validation_size=0.2)
+    regresor.fit(data_train_filtered, edades_train, n_features, 16,  lr=1e-3, weight_decay=1e-6, validation_size=0.2)
 
     # save the model to disk
     filename = os.path.join(save_dir, 'MLP_nfeats_' + str(n_features) + '_split_' + str(split) + '.pkl')
-    pickle.dump(regresor, open(filename, 'wb'))
+    # pickle.dump(regresor, open(filename, 'wb'))
 
     # Hago la predicción de los casos de test sanos
-    pred_val = regresor.predict(datos_val_filtrados_RFE)
-    pred_test = regresor.predict(datos_test_filtrados_RFE)
+    pred_val = regresor.predict(data_val_filtered)
+    pred_test = regresor.predict(data_test_filtered)
 
     # Calculo BAG sanos val & test
     BAG_val_sanos = pred_val - edades_val
@@ -397,7 +436,7 @@ def execute_in_val_and_test_NN_con_CoRR(datos_train_filtrados_RFE, edades_train,
     r_bag_real_biased_test = stats.pearsonr(BAG_test_sanos, edades_test)[0]
 
     # Calculo r MAE para validation
-    print('----------- ' + regresor_used + ' r & MAE test biased -------------')
+    print('----------- ' + regresor_used + ' r & MAE Val biased -------------')
     print('MAE val: ' + str(MAE_biased_val))
     print('MAPE val: ' + str(MAPE_biased_val))
     print('r val: ' + str(r_biased_val))
@@ -433,26 +472,26 @@ def execute_in_val_and_test_NN_con_CoRR(datos_train_filtrados_RFE, edades_train,
     MAEs_and_rs_val = pd.DataFrame(list(zip([MAE_biased_val], [r_biased_val], [r_bag_real_biased_val])),
                                    columns=['MAE_biased_val', 'r_biased_val', 'r_bag_real_biased_val'])
 
-    # results = permutation_importance(regresor, datos_train_filtrados_RFE, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
+    # results = permutation_importance(regresor, data_train_filtered, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
 
     return prediction_and_real_data_test, prediction_and_real_data_val, MAEs_and_rs_test, MAEs_and_rs_val
 
 
-def execute_in_val_and_test_RF_con_CoRR(datos_train_filtrados_RFE, edades_train, datos_val_filtrados_RFE, edades_val,
-                                datos_test_filtrados_RFE, edades_test, lista, regresor, n_feats, split, save_dir):
+def execute_in_val_and_test_RF(data_train_filtered, edades_train, data_val_filtered, edades_val,
+                                data_test_filtered, edades_test, lista, regresor, n_feats, split, save_dir):
     # identifico en método de regresión
     regresor_used = lista[9]
 
     # hago el entrenamiento sobre todos los datos de entrenamiento
-    regresor.fit(datos_train_filtrados_RFE, edades_train)
+    regresor.fit(data_train_filtered, edades_train)
 
     # save the model to disk
     filename = os.path.join(save_dir, 'RF_nfeats_' + str(n_feats) + '_split_' + str(split) + '.pkl')
-    pickle.dump(regresor, open(filename, 'wb'))
+    # pickle.dump(regresor, open(filename, 'wb'))
 
     # Hago la predicción de los casos de test sanos
-    pred_val = regresor.predict(datos_val_filtrados_RFE)
-    pred_test = regresor.predict(datos_test_filtrados_RFE)
+    pred_val = regresor.predict(data_val_filtered)
+    pred_test = regresor.predict(data_test_filtered)
 
     # Calculo BAG sanos val & test
     BAG_val_sanos = pred_val - edades_val
@@ -471,7 +510,7 @@ def execute_in_val_and_test_RF_con_CoRR(datos_train_filtrados_RFE, edades_train,
     r_bag_real_biased_test = stats.pearsonr(BAG_test_sanos, edades_test)[0]
 
     # Calculo r MAE para validation
-    print('----------- ' + regresor_used + ' r & MAE test biased -------------')
+    print('----------- ' + regresor_used + ' r & MAE val biased -------------')
     print('MAE val: ' + str(MAE_biased_val))
     print('MAPE val: ' + str(MAPE_biased_val))
     print('r val: ' + str(r_biased_val))
@@ -507,7 +546,7 @@ def execute_in_val_and_test_RF_con_CoRR(datos_train_filtrados_RFE, edades_train,
     MAEs_and_rs_val = pd.DataFrame(list(zip([MAE_biased_val], [r_biased_val], [r_bag_real_biased_val])),
                                    columns=['MAE_biased_val', 'r_biased_val', 'r_bag_real_biased_val'])
 
-    # results = permutation_importance(regresor, datos_train_filtrados_RFE, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
+    # results = permutation_importance(regresor, data_train_filtered, edades_train, scoring='neg_mean_absolute_error', n_jobs=-1)
 
     return prediction_and_real_data_test, prediction_and_real_data_val, MAEs_and_rs_test, MAEs_and_rs_val
 

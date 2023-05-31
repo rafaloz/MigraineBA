@@ -1,2 +1,15 @@
-[DATOS]
-datos_todos_full = /home/rafa/workRafa/Experimentos_Brain_Age/Datos/Todos_los_datos_Brain_Age_NKI_patologias_miRNA.csv
+[DATA]
+DataAplication = ~/DataApplication
+DataCreation = ~/DataCreation
+FeaturesSelectedMorphological = ~/DataCreation/FeaturesSelected/FeaturesSelectedMorphological.csv
+FeaturesSelectedCombined = ~/DataCreation/FeaturesSelected/FeaturesSelectedCombined.csv
+FeaturesSelectedIntensity = ~/DataCreation/FeaturesSelected/FeaturesSelectedIntensity.csv
+
+[SHAP]
+shap_values_folder = ~/SHAP_values
+
+[MODELS]
+modelsFolder = ~/Models
+
+[RESULTS]
+Results = /where/you/consider
