@@ -177,6 +177,14 @@ print("############################ ANCOVA RESULTS ############################"
 print("########################################################################")
 print(ancova(data=df_ancova, dv='BAG', covar=['etivs', 'sex'], between='type'), end='\n\n')
 
+# Calculate Cohen's d for three groups pairwise
+d_12 = pg.compute_effsize(x=BAG_HC_cor, y=BAG_EM_cor, eftype='cohen')
+d_13 = pg.compute_effsize(x=BAG_HC_cor, y=BAG_CM_cor, eftype='cohen')
+d_23 = pg.compute_effsize(x=BAG_EM_cor, y=BAG_CM_cor, eftype='cohen')
+
+print(f"Cohen's d between HC and EM: {d_12}")
+print(f"Cohen's d between HC and CM: {d_13}")
+print(f"Cohen's d between EM and CM: {d_23}", end='\n\n')
 
 print("############################################")
 print("[INFO] TEST Controls - Episodic Migraine ###")
