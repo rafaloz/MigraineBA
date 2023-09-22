@@ -10,6 +10,7 @@ from pingouin import ancova
 from scipy.stats import f_oneway
 from scipy.stats import kstest, levene, chi2_contingency
 from scipy import stats
+import pingouin as pg
 
 import seaborn as sns
 
