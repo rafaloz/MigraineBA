@@ -1,15 +1,15 @@
 [DATA]
-DataAplication = ~/DataApplication
-DataCreation = ~/DataCreation
-FeaturesSelectedMorphological = ~/DataCreation/FeaturesSelected/FeaturesSelectedMorphological.csv
-FeaturesSelectedCombined = ~/DataCreation/FeaturesSelected/FeaturesSelectedCombined.csv
-FeaturesSelectedIntensity = ~/DataCreation/FeaturesSelected/FeaturesSelectedIntensity.csv
+DataAplication = /home/rafa/PycharmProjects/MigraineBA/DataApplication
+DataCreation = /home/rafa/PycharmProjects/MigraineBA/DataCreation
+FeaturesSelectedMorphological = /home/rafa/PycharmProjects/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedMorphological.csv
+FeaturesSelectedCombined = /home/rafa/PycharmProjects/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedCombined.csv
+FeaturesSelectedIntensity = /home/rafa/PycharmProjects/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedIntensity.csv
 
 [SHAP]
-shap_values_folder = ~/SHAP_values
+shap_values_folder = /home/rafa/PycharmProjects/MigraineBA/SHAP_values
 
 [MODELS]
-modelsFolder = ~/Models
+modelsFolder = /home/rafa/PycharmProjects/MigraineBA/Models
 
 [RESULTS]
 Results = /where/you/consider
