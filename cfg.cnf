@@ -1,9 +1,9 @@
 [DATA]
 DataAplication = ~/MigraineBA/DataApplication
 DataCreation = ~/MigraineBA/DataCreation
-FeaturesSelectedMorphological = ~/DataCreation/FeaturesSelected/FeaturesSelectedMorphological.csv
-FeaturesSelectedCombined = ~/DataCreation/FeaturesSelected/FeaturesSelectedCombined.csv
-FeaturesSelectedIntensity = ~/DataCreation/FeaturesSelected/FeaturesSelectedIntensity.csv
+FeaturesSelectedMorphological = ~/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedMorphological.csv
+FeaturesSelectedCombined = ~/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedCombined.csv
+FeaturesSelectedIntensity = ~/MigraineBA/DataCreation/FeaturesSelected/FeaturesSelectedIntensity.csv
 
 [SHAP]
 shap_values_folder = ~/MigraineBA/SHAP_values

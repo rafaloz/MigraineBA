@@ -46,21 +46,65 @@ print(n_features, end='\n\n')
 
 print('[## INFO ##] Loading models and data...')
 
-# load data  saved
+print('[## INFO ##] Sex selection of the  patients  to evaluate...', end='\n\n')
+sex = 'Males' # 'Females'; 'Males'; "All"
+print('[## INFO ##] Selected: '+sex, end='\n\n')
+
 covar_EM = load_list(os.path.join(folderApplication, 'Demographics_and_Clinical', 'covariates_EM.pkl'))
-age_EM = covar_EM[0]
-sex_EM = covar_EM[1]
-etiv_EM = covar_EM[2]
-
 covar_CM = load_list(os.path.join(folderApplication, 'Demographics_and_Clinical', 'covariates_CM.pkl'))
-age_CM = covar_CM[0]
-sex_CM = covar_CM[1]
-etiv_CM = covar_CM[2]
-
 covar_HC = load_list(os.path.join(folderApplication, 'Demographics_and_Clinical', 'covariates_HC.pkl'))
-edad_HC = covar_HC[0]
-sex_HC = covar_HC[1]
-etiv_HC = covar_HC[2]
+
+# load normalized controls, episodic migraine data and crhonic migraine data
+HC_data = load_list(os.path.join(folderApplication, 'DATA', 'HC_data_norm_' + model_type.lower() + '.pkl'))
+EM_data = load_list(os.path.join(folderApplication, 'DATA', 'EM_data_norm_' + model_type.lower() + '.pkl'))
+CM_data = load_list(os.path.join(folderApplication, 'DATA', 'CM_data_norm_' + model_type.lower() + '.pkl'))
+
+if sex != 'All':
+    if sex == 'Females':
+        indices_to_keep_EM = [i for i in range(len(covar_EM[0])) if all(array[i] != 'M' for array in covar_EM)]
+        covar_EM = [[array[i] for i in indices_to_keep_EM] for array in covar_EM]
+        age_EM, sex_EM, etiv_EM = covar_EM[0], covar_EM[1], covar_EM[2]
+
+        indices_to_keep_CM = [i for i in range(len(covar_CM[0])) if all(array[i] != 'M' for array in covar_CM)]
+        covar_CM = [[array[i] for i in indices_to_keep_CM] for array in covar_CM]
+        age_CM, sex_CM, etiv_CM = covar_CM[0], covar_CM[1], covar_CM[2]
+
+        indices_to_keep_HC = [i for i in range(len(covar_HC[0])) if all(array[i] != 'M' for array in covar_HC)]
+        covar_HC = [[array[i] for i in indices_to_keep_HC] for array in covar_HC]
+        age_HC, sex_HC, etiv_HC = covar_HC[0], covar_HC[1], covar_HC[2]
+
+        EM_data = [arr[indices_to_keep_EM] for arr in EM_data]
+        CM_data = [arr[indices_to_keep_CM] for arr in CM_data]
+        HC_data = [arr[indices_to_keep_HC] for arr in HC_data]
+
+        covars = ['etivs']
+
+    if sex == 'Males':
+        indices_to_keep_EM = [i for i in range(len(covar_EM[0])) if all(array[i] != 'F' for array in covar_EM)]
+        covar_EM = [[array[i] for i in indices_to_keep_EM] for array in covar_EM]
+        age_EM, sex_EM, etiv_EM = covar_EM[0], covar_EM[1], covar_EM[2]
+
+        indices_to_keep_CM = [i for i in range(len(covar_CM[0])) if all(array[i] != 'F' for array in covar_CM)]
+        covar_CM = [[array[i] for i in indices_to_keep_CM] for array in covar_CM]
+        age_CM, sex_CM, etiv_CM = covar_CM[0], covar_CM[1], covar_CM[2]
+
+        indices_to_keep_HC = [i for i in range(len(covar_HC[0])) if all(array[i] != 'F' for array in covar_HC)]
+        covar_HC = [[array[i] for i in indices_to_keep_HC] for array in covar_HC]
+        age_HC, sex_HC, etiv_HC = covar_HC[0], covar_HC[1], covar_HC[2]
+
+        EM_data = [arr[indices_to_keep_EM] for arr in EM_data]
+        CM_data = [arr[indices_to_keep_CM] for arr in CM_data]
+        HC_data = [arr[indices_to_keep_HC] for arr in HC_data]
+
+        covars = ['real_age', 'etivs']
+
+else:
+   # load data  saved
+   age_EM, sex_EM, etiv_EM = covar_EM[0], covar_EM[1], covar_EM[2]
+   age_CM, sex_CM, etiv_CM = covar_CM[0], covar_CM[1], covar_CM[2]
+   age_HC, sex_HC, etiv_HC = covar_CM[0], covar_CM[1], covar_CM[2]
+
+   covars = ['etivs', 'sex']
 
 # for each folder, get the file names sorted
 model_list = sorted([model for model in os.listdir(folder_models) if 'MLP_nfeats_'+str(n_features) in model])
@@ -68,11 +112,6 @@ model_list = sorted([model for model in os.listdir(folder_models) if 'MLP_nfeats
 # load the validation ages by fold, required for bias correction
 age_val_folds = load_list(os.path.join(folderCreation, 'BiasCorrectionData', 'age_val_folds_'+model_type.lower()+'.pkl'))
 pred_val_folds = load_list(os.path.join(folderCreation, 'BiasCorrectionData', 'pred_val_folds_'+model_type.lower()+'.pkl'))
-
-# load normalized controls, episodic migraine data and crhonic migraine data
-HC_data = load_list(os.path.join(folderApplication, 'DATA', 'HC_data_norm_'+model_type.lower()+'.pkl'))
-EM_data = load_list(os.path.join(folderApplication, 'DATA', 'EM_data_norm_'+model_type.lower()+'.pkl'))
-CM_data = load_list(os.path.join(folderApplication, 'DATA', 'CM_data_norm_'+model_type.lower()+'.pkl'))
 
 print('[## INFO ##] Finished Loading.', end='\n\n')
 
@@ -93,13 +132,13 @@ pred_avg_CM_cor = sum(pred_CM_corrected)/10
 pred_avg_EM_cor = sum(pred_EM_corrected)/10
 
 # calculate Brain Age Gap
-BAG_HC_cor = pred_avg_HC_cor - edad_HC
+BAG_HC_cor = pred_avg_HC_cor - age_HC
 BAG_CM_cor = pred_avg_CM_cor - age_CM
 BAG_EM_cor = pred_avg_EM_cor - age_EM
 
 print("[INFO] MAE & Pearson r values for each group:")
-mae_controls = mean_absolute_error(edad_HC, pred_avg_HC_cor)
-r_correlation_HC = stats.pearsonr(edad_HC, pred_avg_HC_cor)[0]
+mae_controls = mean_absolute_error(age_HC, pred_avg_HC_cor)
+r_correlation_HC = stats.pearsonr(age_HC, pred_avg_HC_cor)[0]
 print("MAE HC: {:.2f}".format(mae_controls) +"; r HC: {:.2f}".format(r_correlation_HC))
 mae_EM = mean_absolute_error(age_EM, pred_avg_EM_cor)
 r_correlation_EM = stats.pearsonr(age_EM, pred_avg_EM_cor)[0]
@@ -124,18 +163,18 @@ print("KS-test statistic migr_ep: {:.2f}".format(stat)+"; KS-test p-value: {:.2f
 mean, std = np.mean(age_CM), np.std(age_CM)
 stat, pval = kstest(age_CM, 'norm', args=(mean, std))
 print("KS-test statistic migr_cr: {:.2f}".format(stat)+"; KS-test p-value: {:.2f}".format(pval))
-mean, std = np.mean(edad_HC), np.std(edad_HC)
-stat, pval = kstest(edad_HC, 'norm', args=(mean, std))
+mean, std = np.mean(age_HC), np.std(age_HC)
+stat, pval = kstest(age_HC, 'norm', args=(mean, std))
 print("KS-test statistic controls: {:.2f}".format(stat)+"; KS-test p-value: {:.2f}".format(pval), end='\n\n')
 
 # 3.- Check homocedasticity ages
 print('[INFO] Age variance homocedasticity Levene\'s test')
-stat, pval = levene(age_EM, age_CM, edad_HC)
+stat, pval = levene(age_EM, age_CM, age_HC)
 print("Levene statistic: {:.2f}".format(stat)+"; Levene p-value: {:.2f}".format(pval), end='\n\n')
 
 # ANOVA
 print('[INFO] ANOVA - age differences:')
-stat, pval = f_oneway(age_EM, age_CM, edad_HC)
+stat, pval = f_oneway(age_EM, age_CM, age_HC)
 print("ANOVA statistic: {:.2f}".format(stat)+"; ANOVA p-value: {:.2f}".format(pval), end='\n\n')
 
 
@@ -164,7 +203,7 @@ print("Variance Brain Age Gap EM: {:.2f}".format(np.var(BAG_EM_cor)))
 print("Variance Brain Age Gap CM: {:.2f}".format(np.var(BAG_CM_cor)), end='\n\n')
 
 BAG = np.concatenate((BAG_HC_cor, BAG_EM_cor, BAG_CM_cor))
-ages = np.concatenate((edad_HC, age_EM, age_CM))
+ages = np.concatenate((age_HC, age_EM, age_CM))
 sexs = np.concatenate((sex_HC, sex_EM, sex_CM))
 etivs = np.concatenate((etiv_HC, etiv_EM, etiv_CM))
 sexos_cat = np.where(sexs == 'F', 1, 0)
@@ -176,7 +215,7 @@ df_ancova = pd.DataFrame.from_dict(df_ancova)
 # statistical test
 print("############################ ANCOVA RESULTS ############################")
 print("########################################################################")
-print(ancova(data=df_ancova, dv='BAG', covar=['etivs', 'sex'], between='type'), end='\n\n')
+print(ancova(data=df_ancova, dv='BAG', covar=covars, between='type'), end='\n\n')
 
 # Calculate Cohen's d for three groups pairwise
 d_12 = pg.compute_effsize(x=BAG_HC_cor, y=BAG_EM_cor, eftype='cohen')
@@ -208,7 +247,7 @@ print("Variance Brain Age Gap EM: {:.2f}".format(np.var(BAG_EM_cor)))
 print("Variance Brain Age Gap HC: {:.2f}".format(np.var(BAG_HC_cor)), end='\n\n')
 
 BAG = np.concatenate((BAG_HC_cor, BAG_EM_cor))
-ages = np.concatenate((edad_HC, age_EM))
+ages = np.concatenate((age_HC, age_EM))
 sexs = np.concatenate((sex_HC, sex_EM))
 etivs = np.concatenate((etiv_HC, etiv_EM))
 sexos_cat = np.where(sexs == 'F', 1, 0)
@@ -220,7 +259,7 @@ df_ancova = pd.DataFrame.from_dict(df_ancova)
 # statistical test
 print("############################ ANCOVA RESULTS ############################")
 print("########################################################################")
-print(ancova(data=df_ancova, dv='BAG', covar=['etivs', 'sex'], between='type'), end='\n\n')
+print(ancova(data=df_ancova, dv='BAG', covar=covars, between='type'), end='\n\n')
 
 print("###########################################")
 print("[INFO] TEST Controls - Chronic Migraine ###")
@@ -241,19 +280,19 @@ print("Variance Brain Age Gap CM: {:.2f}".format(np.var(BAG_CM_cor)))
 print("Variance Brain Age Gap HC: {:.2f}".format(np.var(BAG_HC_cor)), end='\n\n')
 
 BAG = np.concatenate((BAG_HC_cor, BAG_CM_cor))
-ages = np.concatenate((edad_HC, age_CM))
+ages = np.concatenate((age_HC, age_CM))
 sexs = np.concatenate((sex_HC, sex_CM))
 etivs = np.concatenate((etiv_HC, etiv_CM))
 sexos_cat = np.where(sexs == 'F', 1, 0)
 type_bag = np.concatenate((np.repeat('HC', len(BAG_HC_cor)), np.repeat('CM', len(BAG_CM_cor))))
 
-df_ancova = {'rea_age': ages.tolist(), 'sex': sexos_cat, 'etivs': etivs.tolist(), 'BAG': BAG.tolist(), 'type': type_bag.tolist()}
+df_ancova = {'real_age': ages.tolist(), 'sex': sexos_cat, 'etivs': etivs.tolist(), 'BAG': BAG.tolist(), 'type': type_bag.tolist()}
 df_ancova = pd.DataFrame.from_dict(df_ancova)
 
 # 3.- statistical test
 print("############################ ANCOVA RESULTS ############################")
 print("########################################################################")
-print(ancova(data=df_ancova, dv='BAG', covar=['etivs', 'sex'], between='type'), end='\n\n')
+print(ancova(data=df_ancova, dv='BAG', covar=covars, between='type'), end='\n\n')
 
 print("###############################################")
 print("[INFO] Episodic Migraine - Chronic Migraine ###")
@@ -283,7 +322,7 @@ df_ancova = pd.DataFrame.from_dict(df_ancova)
 # 3.- statistical test
 print("############################ ANCOVA RESULTS ############################")
 print("########################################################################")
-print(ancova(data=df_ancova, dv='BAG', covar=['etivs', 'sex'], between='type'), end ='\n\n')
+print(ancova(data=df_ancova, dv='BAG', covar=covars, between='type'), end ='\n\n')
 
 ################### Statistical differences in clinical variables ###################
 print('[INFO] Statistical differences in clinical variables:')
@@ -401,7 +440,7 @@ print('#########################################################################
 
 # Prepare the data scatter plot
 BAG = np.concatenate((BAG_EM_cor, BAG_CM_cor, BAG_HC_cor))
-real_ages = np.concatenate((age_EM, age_CM, edad_HC))
+real_ages = np.concatenate((age_EM, age_CM, age_HC))
 predicted_ages = np.concatenate((pred_avg_EM_cor, pred_avg_CM_cor, pred_avg_HC_cor))
 type_bag = np.concatenate((np.repeat('migr_ep', len(BAG_EM_cor)), np.repeat('migr_cr', len(BAG_CM_cor)),  np.repeat('controls', len(BAG_HC_cor))))
 df_scatter = {'real_ages': real_ages.tolist(), 'predicted_ages': predicted_ages.tolist(), 'type': type_bag.tolist()}
