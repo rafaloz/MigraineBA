@@ -102,7 +102,7 @@ else:
    # load data  saved
    age_EM, sex_EM, etiv_EM = covar_EM[0], covar_EM[1], covar_EM[2]
    age_CM, sex_CM, etiv_CM = covar_CM[0], covar_CM[1], covar_CM[2]
-   age_HC, sex_HC, etiv_HC = covar_CM[0], covar_CM[1], covar_CM[2]
+   age_HC, sex_HC, etiv_HC = covar_HC[0], covar_HC[1], covar_HC[2]
 
    covars = ['etivs', 'sex']
 
